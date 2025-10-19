@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cheat Scanner - Minecraft Cheat Detection</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -28,6 +29,13 @@
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         h1 { font-size: 42px; margin-bottom: 15px; }
         p { font-size: 18px; opacity: 0.9; margin-bottom: 40px; }
+        
+        .captcha-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        
         .login-btn {
             background: #5865F2;
             color: white;
@@ -40,12 +48,25 @@
             text-decoration: none;
             display: inline-block;
             transition: all 0.3s;
+            opacity: 0.5;
+            pointer-events: none;
         }
-        .login-btn:hover {
+        .login-btn.enabled {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .login-btn.enabled:hover {
             background: #4752C4;
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
+        
+        .status {
+            margin-top: 20px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
         .features {
             margin-top: 50px;
             display: grid;
@@ -69,7 +90,16 @@
         <div class="logo">🛡️</div>
         <h1>CHEAT SCANNER</h1>
         <p>Minecraft Cheat Detection System</p>
-        <a href="/login" class="login-btn">🔓 Login with Discord</a>
+        
+        <div class="captcha-container">
+            <div class="cf-turnstile" 
+                 data-sitekey="0x4AAAAAAB7d2ZitGbeN1oFC" 
+                 data-callback="onCaptchaSuccess"
+                 data-theme="light"></div>
+        </div>
+        
+        <a href="/login" class="login-btn" id="loginBtn">🔓 Login with Discord</a>
+        <div class="status" id="status">Complete the security check to login</div>
         
         <div class="features">
             <div class="feature">
@@ -89,5 +119,34 @@
             </div>
         </div>
     </div>
+
+    <script>
+        const loginBtn = document.getElementById('loginBtn');
+        const status = document.getElementById('status');
+
+        function onCaptchaSuccess(token) {
+            // Verify captcha with backend
+            fetch('/api/verify-captcha', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({token: token})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    loginBtn.classList.add('enabled');
+                    status.textContent = '✅ Verified! You can now login';
+                    status.style.color = '#10b981';
+                } else {
+                    status.textContent = '❌ Verification failed. Please refresh the page.';
+                    status.style.color = '#ef4444';
+                }
+            })
+            .catch(err => {
+                status.textContent = '❌ Error verifying. Please refresh the page.';
+                status.style.color = '#ef4444';
+            });
+        }
+    </script>
 </body>
 </html>

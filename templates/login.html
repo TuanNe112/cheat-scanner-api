@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Cheat Scanner</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0f0a1e 0%, #1a1233 100%);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #e0d2ff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-box {
+            background: #2d1b4e;
+            padding: 50px;
+            border-radius: 20px;
+            border: 3px solid #7c3aed;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            text-align: center;
+            max-width: 450px;
+        }
+        h1 { color: #fbbf24; font-size: 32px; margin-bottom: 10px; }
+        p { color: #93c5fd; margin-bottom: 30px; }
+        .captcha-container { margin: 30px 0; display: flex; justify-content: center; }
+        .continue-btn {
+            background: #5865F2;
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.5;
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+        .continue-btn.enabled {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .continue-btn.enabled:hover { background: #4752C4; transform: translateY(-2px); }
+        .status { margin-top: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>🛡️ Security Check</h1>
+        <p>Complete verification to continue</p>
+        
+        <div class="captcha-container">
+            <div class="cf-turnstile" 
+                 data-sitekey="0x4AAAAAAB7d2ZitGbeN1oFC" 
+                 data-callback="onVerified"
+                 data-theme="dark"></div>
+        </div>
+        
+        <button class="continue-btn" id="continueBtn" onclick="continueLogin()">Continue to Discord</button>
+        <div class="status" id="status">Complete the challenge above</div>
+    </div>
+
+    <script>
+        let verified = false;
+
+        function onVerified(token) {
+            fetch('/api/verify-captcha', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({token: token})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    verified = true;
+                    document.getElementById('continueBtn').classList.add('enabled');
+                    document.getElementById('status').innerHTML = '✅ Verified! Click to continue';
+                    document.getElementById('status').style.color = '#10b981';
+                }
+            });
+        }
+
+        function continueLogin() {
+            if (verified) {
+                window.location.href = '/auth/discord';
+            }
+        }
+    </script>
+</body>
+</html>
