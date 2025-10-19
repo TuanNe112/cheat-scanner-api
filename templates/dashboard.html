@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Cheat Scanner</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0f0a1e 0%, #1a1233 100%);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #e0d2ff;
+            min-height: 100vh;
+        }
+        .header {
+            background: #1a1233;
+            padding: 20px 40px;
+            border-bottom: 2px solid #7c3aed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { color: #fbbf24; font-size: 24px; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .badge { background: #7c3aed; color: white; padding: 5px 15px; border-radius: 5px; font-weight: bold; }
+        .logout-btn { background: #ef4444; color: white; padding: 8px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; }
+        .container { max-width: 1200px; margin: 60px auto; padding: 0 20px; text-align: center; }
+        .welcome { margin-bottom: 40px; }
+        .welcome h2 { font-size: 36px; color: #fbbf24; margin-bottom: 15px; }
+        .welcome p { font-size: 18px; color: #93c5fd; }
+        .card {
+            background: #2d1b4e;
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #7c3aed;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .card h3 { color: #fbbf24; font-size: 24px; margin-bottom: 20px; }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #3d2b5e;
+        }
+        .info-row:last-child { border: none; }
+        .info-label { color: #93c5fd; }
+        .info-value { color: #e0d2ff; font-weight: bold; }
+        .download-btn {
+            background: #7c3aed;
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        .download-btn:hover { background: #6b2fcd; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ CHEAT SCANNER</h1>
+        <div class="user-info">
+            <span class="badge">USER</span>
+            <span>{{ user.username }}</span>
+            <a href="/logout" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome">
+            <h2>Welcome, {{ user.username }}! 👋</h2>
+            <p>Your account is active and ready to use</p>
+        </div>
+
+        <div class="card">
+            <h3>Account Information</h3>
+            <div class="info-row">
+                <span class="info-label">Discord Username</span>
+                <span class="info-value">{{ user.username }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Discord ID</span>
+                <span class="info-value">{{ user.id }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email</span>
+                <span class="info-value">{{ user.email or 'Not provided' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Verified</span>
+                <span class="info-value">{% if user.verified %}✅ Yes{% else %}❌ No{% endif %}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Status</span>
+                <span class="info-value" style="color: #10b981;">🟢 Active</span>
+            </div>
+            
+            <a href="#" class="download-btn">⬇️ Download Scanner Client</a>
+        </div>
+    </div>
+</body>
+</html>

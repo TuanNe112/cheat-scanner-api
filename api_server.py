@@ -1,375 +1,240 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from flask import Flask, request, jsonify, session, redirect, url_for, render_template
+from functools import wraps
 from datetime import datetime
 import json
 import os
-import requests
-from typing import List, Dict
 
-app = FastAPI(title="Cheat Scanner API")
+app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'change-this-secret-key-here')
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Discord OAuth Config
+DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID')
+DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET')
+DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI')
+OWNER_ID = os.environ.get('OWNER_ID')
+TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET')
 
-# Config
-DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK", "")
-TURNSTILE_SECRET = os.getenv("TURNSTILE_SECRET", "")
+# Data storage
+DATA_DIR = 'data'
+USERS_FILE = f'{DATA_DIR}/users.json'
+BANNED_FILE = f'{DATA_DIR}/banned.json'
 
-# Database
-users_db: Dict[str, dict] = {}
-banned_db: List[str] = []
+os.makedirs(DATA_DIR, exist_ok=True)
 
-class UserLogin(BaseModel):
-    id: str
-    username: str
-    email: str
-    verified: bool
-    hwid: str
-
-class TurnstileVerify(BaseModel):
-    token: str
-
-class BanRequest(BaseModel):
-    user_id: str
-    reason: str = "Banned by admin"
-
-def send_webhook(title, message, color=5814783):
+# Helper functions
+def load_users():
     try:
-        payload = {
-            "embeds": [{
-                "title": title,
-                "description": message,
-                "color": color,
-                "timestamp": datetime.utcnow().isoformat()
-            }]
-        }
-        requests.post(DISCORD_WEBHOOK, json=payload, timeout=5)
+        with open(USERS_FILE, 'r') as f:
+            return json.load(f)
     except:
-        pass
+        return {}
 
-# HTML Dashboard
-@app.get("/", response_class=HTMLResponse)
-def home():
-    html = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cheat Scanner API</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px;
-            max-width: 900px;
-            width: 100%;
-            animation: fadeIn 0.5s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .header { text-align: center; margin-bottom: 40px; }
-        .logo { font-size: 60px; margin-bottom: 10px; }
-        h1 { color: #333; font-size: 32px; margin-bottom: 10px; }
-        .subtitle { color: #666; font-size: 16px; }
-        .status-badge {
-            display: inline-block;
-            background: #10b981;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-            margin: 20px 0;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            padding: 30px;
-            color: white;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
-        }
-        .stat-icon { font-size: 45px; margin-bottom: 15px; }
-        .stat-value { font-size: 42px; font-weight: bold; margin: 10px 0; }
-        .stat-label { 
-            font-size: 14px; 
-            opacity: 0.9; 
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-        .endpoints {
-            margin-top: 30px;
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 25px;
-        }
-        .endpoints h3 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 20px;
-        }
-        .endpoint {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
-        }
-        .endpoint:hover {
-            transform: translateX(5px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        .endpoint-method {
-            background: #667eea;
-            color: white;
-            padding: 5px 12px;
-            border-radius: 5px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-right: 15px;
-            min-width: 50px;
-            text-align: center;
-        }
-        .endpoint-method.post { background: #f59e0b; }
-        .endpoint-path {
-            color: #333;
-            font-family: 'Courier New', monospace;
-            flex: 1;
-            font-size: 14px;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #666;
-            font-size: 14px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-        }
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">🛡️</div>
-            <h1>Cheat Scanner API</h1>
-            <p class="subtitle">Real-time Minecraft Cheat Detection System</p>
-            <div class="status-badge">✅ Online & Running</div>
-        </div>
+def save_users(users):
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f, indent=2)
 
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-icon">👥</div>
-                <div class="stat-value" id="users">
-                    <div class="loading"></div>
-                </div>
-                <div class="stat-label">Total Users</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">🚫</div>
-                <div class="stat-value" id="banned">
-                    <div class="loading"></div>
-                </div>
-                <div class="stat-label">Banned Users</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">⚡</div>
-                <div class="stat-value">2.0</div>
-                <div class="stat-label">API Version</div>
-            </div>
-        </div>
-
-        <div class="endpoints">
-            <h3>📡 Available Endpoints</h3>
-            <div class="endpoint">
-                <span class="endpoint-method">GET</span>
-                <span class="endpoint-path">/</span>
-            </div>
-            <div class="endpoint">
-                <span class="endpoint-method">GET</span>
-                <span class="endpoint-path">/health</span>
-            </div>
-            <div class="endpoint">
-                <span class="endpoint-method post">POST</span>
-                <span class="endpoint-path">/turnstile/verify</span>
-            </div>
-            <div class="endpoint">
-                <span class="endpoint-method post">POST</span>
-                <span class="endpoint-path">/auth/login</span>
-            </div>
-            <div class="endpoint">
-                <span class="endpoint-method">GET</span>
-                <span class="endpoint-path">/auth/check_ban/{user_id}</span>
-            </div>
-            <div class="endpoint">
-                <span class="endpoint-method post">POST</span>
-                <span class="endpoint-path">/admin/ban</span>
-            </div>
-            <div class="endpoint">
-                <span class="endpoint-method post">POST</span>
-                <span class="endpoint-path">/admin/unban/{user_id}</span>
-            </div>
-            <div class="endpoint">
-                <span class="endpoint-method">GET</span>
-                <span class="endpoint-path">/admin/users</span>
-            </div>
-            <div class="endpoint">
-                <span class="endpoint-method">GET</span>
-                <span class="endpoint-path">/admin/banned</span>
-            </div>
-        </div>
-
-        <div class="footer">
-            <p>🚀 Powered by <strong>FastAPI</strong> • Deployed on <strong>Render.com</strong></p>
-            <p style="margin-top: 10px; font-size: 12px; opacity: 0.7;">
-                © 2025 Cheat Scanner API • All rights reserved
-            </p>
-        </div>
-    </div>
-
-    <script>
-        async function loadStats() {
-            try {
-                const response = await fetch('/api/stats');
-                const data = await response.json();
-                document.getElementById('users').textContent = data.users || 0;
-                document.getElementById('banned').textContent = data.banned || 0;
-            } catch (error) {
-                document.getElementById('users').textContent = '0';
-                document.getElementById('banned').textContent = '0';
-            }
-        }
-        loadStats();
-        setInterval(loadStats, 30000);
-    </script>
-</body>
-</html>
-    """
-    return html
-
-@app.get("/health")
-def health():
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
-
-@app.get("/api/stats")
-def api_stats():
-    return {
-        "users": len(users_db),
-        "banned": len(banned_db),
-        "version": "2.0"
-    }
-
-@app.post("/turnstile/verify")
-def verify_turnstile(data: TurnstileVerify):
+def load_banned():
     try:
-        response = requests.post(
-            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-            json={'secret': TURNSTILE_SECRET, 'response': data.token},
-            timeout=5
-        )
-        return {"success": response.json().get("success", False)}
+        with open(BANNED_FILE, 'r') as f:
+            return json.load(f)
     except:
-        return {"success": False}
+        return {}
 
-@app.post("/auth/login")
-def user_login(user: UserLogin):
-    user_id = user.id
+def save_banned(banned):
+    with open(BANNED_FILE, 'w') as f:
+        json.dump(banned, f, indent=2)
+
+# Decorators
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return redirect(url_for('login_page'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def owner_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session or session['user'].get('id') != OWNER_ID:
+            return jsonify({'error': 'Access denied'}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+# ======== CLIENT API ROUTES (GIỮ NGUYÊN) ========
+@app.route('/turnstile/verify', methods=['POST'])
+def verify_turnstile():
+    data = request.json
+    token = data.get('token')
     
-    if user_id in banned_db:
-        raise HTTPException(status_code=403, detail="User is banned")
+    if not token:
+        return jsonify({"success": False}), 400
     
-    if user_id not in users_db:
-        users_db[user_id] = {
-            "username": user.username,
-            "email": user.email,
-            "hwid": user.hwid,
+    import requests as req
+    verify_response = req.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', json={
+        'secret': TURNSTILE_SECRET,
+        'response': token
+    })
+    
+    result = verify_response.json()
+    return jsonify({"success": result.get('success', False)})
+
+@app.route('/auth/login', methods=['POST'])
+def auth_login():
+    data = request.json
+    user_id = data.get('id')
+    
+    if not user_id:
+        return jsonify({"error": "Invalid data"}), 400
+    
+    users = load_users()
+    
+    if user_id not in users:
+        users[user_id] = {
+            "username": data.get('username'),
+            "email": data.get('email'),
+            "verified": data.get('verified', False),
+            "hwid": data.get('hwid'),
             "first_login": datetime.now().isoformat(),
-            "last_login": datetime.now().isoformat(),
             "total_logins": 1
         }
-        send_webhook("🆕 New User", f"**{user.username}**\nID: {user_id}", 3447003)
     else:
-        if users_db[user_id]["hwid"] != user.hwid:
-            raise HTTPException(status_code=403, detail="HWID mismatch")
-        users_db[user_id]["last_login"] = datetime.now().isoformat()
-        users_db[user_id]["total_logins"] += 1
+        users[user_id]['total_logins'] = users[user_id].get('total_logins', 0) + 1
+        users[user_id]['last_login'] = datetime.now().isoformat()
     
-    return {"success": True}
+    save_users(users)
+    return jsonify({"success": True})
 
-@app.get("/auth/check_ban/{user_id}")
-def check_ban(user_id: str):
-    return {"banned": user_id in banned_db}
+@app.route('/auth/check_ban/<user_id>')
+def check_ban(user_id):
+    banned = load_banned()
+    if user_id in banned:
+        return jsonify({"banned": True, "reason": banned[user_id].get('reason')})
+    return jsonify({"banned": False})
 
-@app.post("/admin/ban")
-def ban_user(ban: BanRequest):
-    if ban.user_id not in banned_db:
-        banned_db.append(ban.user_id)
-        send_webhook("🚫 User Banned", f"ID: {ban.user_id}", 15158332)
-    return {"success": True}
+@app.route('/admin/users')
+def admin_users():
+    users = load_users()
+    return jsonify({"total": len(users), "users": users})
 
-@app.post("/admin/unban/{user_id}")
-def unban_user(user_id: str):
-    if user_id in banned_db:
-        banned_db.remove(user_id)
-        send_webhook("✅ Unbanned", f"ID: {user_id}", 3066993)
-    return {"success": True}
+@app.route('/admin/ban', methods=['POST'])
+def admin_ban():
+    data = request.json
+    user_id = data.get('user_id')
+    reason = data.get('reason', 'Banned by admin')
+    
+    banned = load_banned()
+    banned[user_id] = {
+        'reason': reason,
+        'banned_at': datetime.now().isoformat()
+    }
+    save_banned(banned)
+    
+    return jsonify({"success": True})
+# ======== WEB ROUTES ========
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-@app.get("/admin/users")
-def get_users():
-    return {"total": len(users_db), "users": users_db}
+@app.route('/login')
+def login_page():
+    auth_url = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20email"
+    return redirect(auth_url)
 
-@app.get("/admin/banned")
-def get_banned():
-    return {"total": len(banned_db), "banned": banned_db}
+@app.route('/callback')
+def callback():
+    code = request.args.get('code')
+    if not code:
+        return "Login failed", 400
+    
+    data = {
+        'client_id': DISCORD_CLIENT_ID,
+        'client_secret': DISCORD_CLIENT_SECRET,
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': DISCORD_REDIRECT_URI
+    }
+    
+    import requests as req
+    token_response = req.post('https://discord.com/api/oauth2/token', data=data)
+    token_data = token_response.json()
+    
+    user_response = req.get('https://discord.com/api/users/@me', 
+                           headers={'Authorization': f"Bearer {token_data['access_token']}"})
+    user_data = user_response.json()
+    
+    session['user'] = user_data
+    
+    if user_data.get('id') == OWNER_ID:
+        return redirect(url_for('panel'))
+    else:
+        return redirect(url_for('dashboard'))
+
+@app.route('/panel')
+@login_required
+@owner_required
+def panel():
+    return render_template('panel.html', user=session['user'])
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', user=session['user'])
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('home'))
+
+# ======== PANEL API ROUTES ========
+@app.route('/api/panel/users')
+@owner_required
+def get_panel_users():
+    users = load_users()
+    return jsonify({'total': len(users), 'users': users})
+
+@app.route('/api/panel/ban', methods=['POST'])
+@owner_required
+def ban_user_panel():
+    data = request.json
+    user_id = data.get('user_id')
+    reason = data.get('reason', 'Banned by admin')
+    
+    banned = load_banned()
+    banned[user_id] = {
+        'reason': reason,
+        'banned_at': datetime.now().isoformat(),
+        'banned_by': session['user']['username']
+    }
+    save_banned(banned)
+    return jsonify({'success': True})
+
+@app.route('/api/panel/unban', methods=['POST'])
+@owner_required
+def unban_user_panel():
+    data = request.json
+    user_id = data.get('user_id')
+    
+    banned = load_banned()
+    if user_id in banned:
+        del banned[user_id]
+        save_banned(banned)
+    
+    return jsonify({'success': True})
+
+@app.route('/api/panel/stats')
+@owner_required
+def get_panel_stats():
+    users = load_users()
+    banned = load_banned()
+    
+    return jsonify({
+        'total_users': len(users),
+        'banned_users': len(banned),
+        'active_users': len(users) - len(banned),
+        'total_logins': sum(u.get('total_logins', 0) for u in users.values())
+    })
+
+# ======== RUN ========
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
