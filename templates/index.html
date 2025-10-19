@@ -93,12 +93,12 @@
         
         <div class="captcha-container">
             <div class="cf-turnstile" 
-                 data-sitekey="0x4AAAAAAB7d2ZitGbeN1oFC" 
+                 data-sitekey="0x4AAAAAAB7dVNvq7xPpQApZ" 
                  data-callback="onCaptchaSuccess"
                  data-theme="light"></div>
         </div>
         
-        <a href="/login" class="login-btn" id="loginBtn">🔓 Login with Discord</a>
+        <a href="/auth/discord" class="login-btn" id="loginBtn">🔓 Login with Discord</a>
         <div class="status" id="status">Complete the security check to login</div>
         
         <div class="features">
@@ -125,7 +125,6 @@
         const status = document.getElementById('status');
 
         function onCaptchaSuccess(token) {
-            // Verify captcha with backend
             fetch('/api/verify-captcha', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
