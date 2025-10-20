@@ -1,109 +1,233 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Cheat Scanner</title>
+    <title>Dashboard - Scanner Cheat</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: linear-gradient(135deg, #0f0a1e 0%, #1a1233 100%);
-            font-family: 'Segoe UI', Arial, sans-serif;
-            color: #e0d2ff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a2332 0%, #2d3e50 100%);
             min-height: 100vh;
+            color: white;
         }
         .header {
-            background: #1a1233;
+            background: rgba(26, 35, 50, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding: 20px 40px;
-            border-bottom: 2px solid #7c3aed;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
-        .header h1 { color: #fbbf24; font-size: 24px; }
-        .user-info { display: flex; align-items: center; gap: 15px; }
-        .badge { background: #7c3aed; color: white; padding: 5px 15px; border-radius: 5px; font-weight: bold; }
-        .logout-btn { background: #ef4444; color: white; padding: 8px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; }
-        .container { max-width: 1200px; margin: 60px auto; padding: 0 20px; text-align: center; }
-        .welcome { margin-bottom: 40px; }
-        .welcome h2 { font-size: 36px; color: #fbbf24; margin-bottom: 15px; }
-        .welcome p { font-size: 18px; color: #93c5fd; }
-        .card {
-            background: #2d1b4e;
-            padding: 40px;
-            border-radius: 15px;
-            border: 2px solid #7c3aed;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .card h3 { color: #fbbf24; font-size: 24px; margin-bottom: 20px; }
-        .info-row {
+        .logo-dropdown { position: relative; }
+        .logo-button {
             display: flex;
-            justify-content: space-between;
-            padding: 15px 0;
-            border-bottom: 1px solid #3d2b5e;
-        }
-        .info-row:last-child { border: none; }
-        .info-label { color: #93c5fd; }
-        .info-value { color: #e0d2ff; font-weight: bold; }
-        .download-btn {
-            background: #7c3aed;
-            color: white;
-            padding: 15px 40px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
+            align-items: center;
+            gap: 15px;
             cursor: pointer;
-            margin-top: 30px;
+            padding: 10px 20px;
+            border-radius: 12px;
+            transition: all 0.3s;
+            background: transparent;
+            border: none;
+        }
+        .logo-button:hover { background: rgba(255, 255, 255, 0.05); }
+        .logo-icon { width: 50px; height: 50px; }
+        .logo-text h2 {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .logo-text p { font-size: 12px; color: rgba(255, 255, 255, 0.6); }
+        .dropdown-menu {
+            position: absolute;
+            top: 80px;
+            left: 0;
+            background: rgba(26, 35, 50, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 10px;
+            min-width: 250px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        .dropdown-menu.active { opacity: 1; visibility: visible; transform: translateY(0); }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            color: white;
             text-decoration: none;
-            display: inline-block;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .dropdown-item:hover { background: rgba(102, 126, 234, 0.2); }
+        .dropdown-item.danger { color: #f56565; }
+        .dropdown-item.danger:hover { background: rgba(245, 101, 101, 0.1); }
+        .dropdown-divider { height: 1px; background: rgba(255, 255, 255, 0.1); margin: 8px 0; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .user-details h3 { font-size: 16px; font-weight: 600; }
+        .user-details p { font-size: 12px; color: rgba(255, 255, 255, 0.6); }
+        .container { max-width: 1200px; margin: 60px auto; padding: 0 40px; }
+        .welcome-card {
+            background: rgba(26, 35, 50, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 50px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            margin-bottom: 40px;
+        }
+        .welcome-card h1 {
+            font-size: 36px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .welcome-card p { color: rgba(255, 255, 255, 0.7); font-size: 16px; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
+        .info-card {
+            background: rgba(26, 35, 50, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
             transition: all 0.3s;
         }
-        .download-btn:hover { background: #6b2fcd; transform: translateY(-2px); }
+        .info-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3); }
+        .info-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .info-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .info-title { font-size: 18px; font-weight: 600; }
+        .info-content { color: rgba(255, 255, 255, 0.7); line-height: 1.6; }
+        .info-value {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 10px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .info-value span { color: white; font-weight: 600; }
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            margin-top: 30px;
+        }
+        .download-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4); }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>⚡ CHEAT SCANNER</h1>
+        <div class="logo-dropdown">
+            <button class="logo-button" onclick="toggleDropdown()">
+                <svg class="logo-icon" viewBox="0 0 500 500">
+                    <polygon points="250,50 420,150 420,350 250,450 80,350 80,150" fill="#00D4FF" stroke="#00A8CC" stroke-width="4"/>
+                    <polygon points="250,90 390,170 390,330 250,410 110,330 110,170" fill="#FF3B3B" stroke="#CC0000" stroke-width="3"/>
+                    <polygon points="250,120 370,185 370,315 250,380 130,315 130,185" fill="#00D4FF"/>
+                    <text x="250" y="260" text-anchor="middle" font-family="Arial Black" font-size="80" font-weight="900" fill="#FF3B3B" stroke="#000" stroke-width="3">SC</text>
+                </svg>
+                <div class="logo-text"><h2>SCANNER CHEAT</h2><p>Dashboard</p></div>
+            </button>
+            <div class="dropdown-menu" id="dropdownMenu">
+                <a href="/dashboard" class="dropdown-item"><span>👤</span><span>Dashboard</span></a>
+                {% if user.id == owner_id %}
+                <a href="/panel" class="dropdown-item"><span>👑</span><span>Admin Panel</span></a>
+                {% endif %}
+                <div class="dropdown-divider"></div>
+                <a href="/logout" class="dropdown-item danger"><span>🚪</span><span>Logout</span></a>
+            </div>
+        </div>
         <div class="user-info">
-            <span class="badge">USER</span>
-            <span>{{ user.username }}</span>
-            <a href="/logout" class="logout-btn">Logout</a>
+            <div class="user-avatar">{{ user.username[0].upper() }}</div>
+            <div class="user-details">
+                <h3>{{ user.username }}</h3>
+                <p>{% if user.verified %}✅ Verified{% else %}⚠️ Not Verified{% endif %}</p>
+            </div>
         </div>
     </div>
-
     <div class="container">
-        <div class="welcome">
-            <h2>Welcome, {{ user.username }}! 👋</h2>
+        <div class="welcome-card">
+            <h1>Welcome, {{ user.username }}! 👋</h1>
             <p>Your account is active and ready to use</p>
+            <a href="#" class="download-btn"><span>⬇️</span><span>Download Scanner Client</span></a>
         </div>
-
-        <div class="card">
-            <h3>Account Information</h3>
-            <div class="info-row">
-                <span class="info-label">Discord Username</span>
-                <span class="info-value">{{ user.username }}</span>
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-header"><div class="info-icon">👤</div><div class="info-title">Account Info</div></div>
+                <div class="info-content">
+                    <div class="info-value">Username: <span>{{ user.username }}</span></div>
+                    <div class="info-value">Discord ID: <span>{{ user.id }}</span></div>
+                    <div class="info-value">Email: <span>{{ user.email or 'Not provided' }}</span></div>
+                </div>
             </div>
-            <div class="info-row">
-                <span class="info-label">Discord ID</span>
-                <span class="info-value">{{ user.id }}</span>
+            <div class="info-card">
+                <div class="info-header"><div class="info-icon">✅</div><div class="info-title">Verification</div></div>
+                <div class="info-content">
+                    <div class="info-value">Status: <span style="color: #48bb78;">{% if user.verified %}✅ Verified{% else %}❌ Not Verified{% endif %}</span></div>
+                    <div class="info-value">Access Level: <span>{% if user.id == owner_id %}👑 Owner{% else %}👤 User{% endif %}</span></div>
+                </div>
             </div>
-            <div class="info-row">
-                <span class="info-label">Email</span>
-                <span class="info-value">{{ user.email or 'Not provided' }}</span>
+            <div class="info-card">
+                <div class="info-header"><div class="info-icon">📊</div><div class="info-title">Activity</div></div>
+                <div class="info-content">
+                    <div class="info-value">Total Logins: <span>{{ stats.total_logins or 1 }}</span></div>
+                    <div class="info-value">Last Login: <span>{{ stats.last_login or 'Just now' }}</span></div>
+                    <div class="info-value">Account Status: <span style="color: #48bb78;">🟢 Active</span></div>
+                </div>
             </div>
-            <div class="info-row">
-                <span class="info-label">Verified</span>
-                <span class="info-value">{% if user.verified %}✅ Yes{% else %}❌ No{% endif %}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Status</span>
-                <span class="info-value" style="color: #10b981;">🟢 Active</span>
-            </div>
-            
-            <a href="#" class="download-btn">⬇️ Download Scanner Client</a>
         </div>
     </div>
+    <script>
+        function toggleDropdown() { document.getElementById('dropdownMenu').classList.toggle('active'); }
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.logo-dropdown');
+            if (!dropdown.contains(event.target)) document.getElementById('dropdownMenu').classList.remove('active');
+        });
+    </script>
 </body>
 </html>

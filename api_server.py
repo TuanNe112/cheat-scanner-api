@@ -1,12 +1,15 @@
 from flask import Flask, request, jsonify, session, redirect, url_for, render_template
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 import requests as external_requests
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'change-this-secret-key-here')
+
+# Session config - Remember Me support
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
 # ========== CONFIG ==========
 DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID')
@@ -62,9 +65,10 @@ def owner_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# ========== CLIENT API ROUTES ==========
+# ========== CLIENT API ROUTES (cho Minecraft client) ==========
 @app.route('/turnstile/verify', methods=['POST'])
 def verify_turnstile():
+    """Verify Turnstile CAPTCHA from client"""
     data = request.json
     token = data.get('token')
     
@@ -84,11 +88,20 @@ def verify_turnstile():
 
 @app.route('/auth/login', methods=['POST'])
 def auth_login():
+    """Login from Minecraft client"""
     data = request.json
     user_id = data.get('id')
     
     if not user_id:
         return jsonify({"error": "Invalid data"}), 400
+    
+    # Check ban
+    banned = load_banned()
+    if user_id in banned:
+        return jsonify({
+            "error": "banned",
+            "reason": banned[user_id].get('reason')
+        }), 403
     
     users = load_users()
     
@@ -104,36 +117,33 @@ def auth_login():
     else:
         users[user_id]['total_logins'] = users[user_id].get('total_logins', 0) + 1
         users[user_id]['last_login'] = datetime.now().isoformat()
+        if data.get('hwid'):
+            users[user_id]['hwid'] = data.get('hwid')
     
     save_users(users)
-    return jsonify({"success": True})
+    return jsonify({
+        "success": True,
+        "user": users[user_id]
+    })
 
 @app.route('/auth/check_ban/<user_id>')
 def check_ban(user_id):
+    """Check if user is banned (for client)"""
     banned = load_banned()
     if user_id in banned:
         return jsonify({"banned": True, "reason": banned[user_id].get('reason')})
     return jsonify({"banned": False})
 
-@app.route('/admin/users')
-def admin_users():
+@app.route('/api/stats')
+def api_stats():
+    """Get public stats (for client)"""
     users = load_users()
-    return jsonify({"total": len(users), "users": users})
-
-@app.route('/admin/ban', methods=['POST'])
-def admin_ban():
-    data = request.json
-    user_id = data.get('user_id')
-    reason = data.get('reason', 'Banned by admin')
-    
     banned = load_banned()
-    banned[user_id] = {
-        'reason': reason,
-        'banned_at': datetime.now().isoformat()
-    }
-    save_banned(banned)
-    
-    return jsonify({"success": True})
+    return jsonify({
+        "total_users": len(users),
+        "banned_users": len(banned),
+        "active_users": len(users) - len(banned)
+    })
 
 # ========== WEB ROUTES ==========
 @app.route('/')
@@ -146,12 +156,15 @@ def login_page():
 
 @app.route('/auth/discord')
 def auth_discord():
-    auth_url = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20email"
+    remember = request.args.get('remember', 'false')
+    auth_url = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20email&state={remember}"
     return redirect(auth_url)
 
 @app.route('/callback')
 def callback():
     code = request.args.get('code')
+    remember = request.args.get('state', 'false')  # Get remember me from state
+    
     if not code:
         return "Login failed", 400
     
@@ -194,6 +207,12 @@ def callback():
         
         save_users(users)
         
+        # Set session with remember me
+        if remember == 'true':
+            session.permanent = True  # 30 days
+        else:
+            session.permanent = False
+        
         session['user'] = user_data
         
         if user_data.get('id') == OWNER_ID:
@@ -207,12 +226,15 @@ def callback():
 @login_required
 @owner_required
 def panel():
-    return render_template('panel.html', user=session['user'])
+    return render_template('panel.html', user=session['user'], owner_id=OWNER_ID)
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html', user=session['user'])
+    users = load_users()
+    user_id = session['user'].get('id')
+    user_stats = users.get(user_id, {})
+    return render_template('dashboard.html', user=session['user'], stats=user_stats, owner_id=OWNER_ID)
 
 @app.route('/logout')
 def logout():
@@ -244,6 +266,12 @@ def verify_captcha():
 def get_panel_users():
     users = load_users()
     return jsonify({'total': len(users), 'users': users})
+
+@app.route('/api/panel/banned')
+@owner_required
+def get_banned_users():
+    banned = load_banned()
+    return jsonify({'banned': banned})
 
 @app.route('/api/panel/ban', methods=['POST'])
 @owner_required

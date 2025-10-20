@@ -1,129 +1,204 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cheat Scanner - Minecraft Cheat Detection</title>
+    <title>Scanner Cheat - Minecraft Protection</title>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: 'Segoe UI', Arial, sans-serif;
-            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a2332 0%, #2d3e50 100%);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+            color: white;
+            overflow: hidden;
+        }
+        .bg-animation { position: fixed; width: 100%; height: 100%; top: 0; left: 0; z-index: 0; overflow: hidden; }
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: moveBackground 20s linear infinite;
+        }
+        @keyframes moveBackground {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+        .particle {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: rgba(102, 126, 234, 0.6);
+            border-radius: 50%;
+            animation: float 6s infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            25% { opacity: 1; }
+            75% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
         }
         .container {
+            position: relative;
+            z-index: 10;
             text-align: center;
-            max-width: 600px;
             padding: 60px 40px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            background: rgba(26, 35, 50, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .logo { font-size: 80px; margin-bottom: 20px; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-        h1 { font-size: 42px; margin-bottom: 15px; }
-        p { font-size: 18px; opacity: 0.9; margin-bottom: 40px; }
-        
-        .captcha-container {
-            display: flex;
-            justify-content: center;
-            margin: 30px 0;
+        .logo-container { margin: 0 auto 30px; animation: logoFloat 3s ease-in-out infinite; }
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto;
+            filter: drop-shadow(0 10px 40px rgba(102, 126, 234, 0.5));
+            animation: glow 2s ease-in-out infinite alternate;
         }
-        
+        @keyframes logoFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes glow {
+            from { filter: drop-shadow(0 10px 40px rgba(102, 126, 234, 0.5)); }
+            to { filter: drop-shadow(0 10px 60px rgba(118, 75, 162, 0.8)); }
+        }
+        h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .subtitle { color: rgba(255, 255, 255, 0.7); font-size: 16px; margin-bottom: 40px; }
+        .loading-container { margin: 40px 0; }
+        .loading-text { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: white; }
+        .loading-subtext { font-size: 14px; color: rgba(255, 255, 255, 0.6); margin-bottom: 30px; line-height: 1.6; }
+        .progress-container { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden; margin-bottom: 15px; }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            width: 0%;
+            animation: progress 2s ease-in-out forwards;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+        @keyframes progress { to { width: 100%; } }
+        .status { font-size: 13px; color: rgba(255, 255, 255, 0.5); margin-top: 15px; }
+        .captcha-container { display: none; margin: 40px 0; justify-content: center; }
+        .captcha-container.active { display: flex; }
         .login-btn {
-            background: #5865F2;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            padding: 15px 40px;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
             text-decoration: none;
-            display: inline-block;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
             transition: all 0.3s;
-            opacity: 0.5;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            opacity: 0;
             pointer-events: none;
+            border: none;
+            cursor: pointer;
         }
-        .login-btn.enabled {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .login-btn.enabled:hover {
-            background: #4752C4;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        
-        .status {
-            margin-top: 20px;
-            font-size: 14px;
-            opacity: 0.8;
-        }
-        
-        .features {
-            margin-top: 50px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-        .feature {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
+        .login-btn.enabled { opacity: 1; pointer-events: auto; }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4); }
+        .footer-info { margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center; }
+        .info-item { font-size: 12px; }
+        .info-icon { font-size: 24px; margin-bottom: 8px; }
+        .info-label { color: rgba(255, 255, 255, 0.5); margin-bottom: 5px; }
+        .info-value { color: white; font-weight: 600; }
+        .ray-id {
+            margin-top: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.02);
             border-radius: 10px;
-            transition: transform 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .feature:hover { transform: translateY(-5px); }
-        .feature-icon { font-size: 40px; margin-bottom: 10px; }
-        .feature h3 { font-size: 16px; margin-bottom: 5px; }
-        .feature p { font-size: 14px; opacity: 0.8; margin: 0; }
+        .ray-label { font-size: 11px; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .ray-value { font-size: 13px; color: rgba(255, 255, 255, 0.6); font-family: 'Courier New', monospace; }
+        .powered-by { margin-top: 15px; font-size: 12px; color: rgba(255, 255, 255, 0.4); }
+        .powered-by a { color: #667eea; text-decoration: none; font-weight: 600; }
+        @keyframes successPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.05); } }
+        .success { animation: successPulse 1s ease-in-out; }
     </style>
 </head>
 <body>
+    <div class="bg-animation"></div>
+    <script>
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 6 + 's';
+            particle.style.animationDuration = (4 + Math.random() * 4) + 's';
+            document.body.appendChild(particle);
+        }
+    </script>
     <div class="container">
-        <div class="logo">🛡️</div>
-        <h1>CHEAT SCANNER</h1>
-        <p>Minecraft Cheat Detection System</p>
-        
-        <div class="captcha-container">
-            <div class="cf-turnstile" 
-                 data-sitekey="0x4AAAAAAB7dVNvq7xPpQApZ" 
-                 data-callback="onCaptchaSuccess"
-                 data-theme="light"></div>
+        <div class="logo-container">
+            <svg class="logo" viewBox="0 0 500 500">
+                <polygon points="250,50 420,150 420,350 250,450 80,350 80,150" fill="#00D4FF" stroke="#00A8CC" stroke-width="4"/>
+                <polygon points="250,90 390,170 390,330 250,410 110,330 110,170" fill="#FF3B3B" stroke="#CC0000" stroke-width="3"/>
+                <polygon points="250,120 370,185 370,315 250,380 130,315 130,185" fill="#00D4FF"/>
+                <text x="250" y="220" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="45" font-weight="900" fill="#FF3B3B" stroke="#000" stroke-width="2">SCANNER</text>
+                <text x="250" y="290" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="50" font-weight="900" fill="#FF3B3B" stroke="#000" stroke-width="2">CHEAT</text>
+            </svg>
         </div>
-        
-        <a href="/auth/discord" class="login-btn" id="loginBtn">🔓 Login with Discord</a>
-        <div class="status" id="status">Complete the security check to login</div>
-        
-        <div class="features">
-            <div class="feature">
-                <div class="feature-icon">⚡</div>
-                <h3>Fast Scanning</h3>
-                <p>Scan thousands of files instantly</p>
+        <h1>SCANNER CHEAT</h1>
+        <p class="subtitle">Minecraft Protection System</p>
+        <div class="loading-container" id="loadingState">
+            <div class="loading-text">Khoan đã...</div>
+            <div class="loading-subtext">Chúng tôi đang kiểm tra trình duyệt của bạn, hãy hoàn<br>thành captcha ở dưới để có thể tiếp tục truy cập</div>
+            <div class="progress-container"><div class="progress-bar"></div></div>
+            <div class="status" id="statusText">Đang chờ scanner-cheat.railway.app phản hồi...</div>
+        </div>
+        <div class="captcha-container" id="captchaContainer">
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAAB7dVNvq7xPpQApZ" data-callback="onCaptchaSuccess" data-theme="dark"></div>
+        </div>
+        <a href="/login" class="login-btn" id="loginBtn"><span>🔓</span><span>Login with Discord</span></a>
+        <div class="footer-info">
+            <div class="info-grid">
+                <div class="info-item"><div class="info-icon">⚡</div><div class="info-label">Speed</div><div class="info-value">< 50ms</div></div>
+                <div class="info-item"><div class="info-icon">🎯</div><div class="info-label">Accuracy</div><div class="info-value">99.9%</div></div>
+                <div class="info-item"><div class="info-icon">🔒</div><div class="info-label">Security</div><div class="info-value">CloudFlare</div></div>
             </div>
-            <div class="feature">
-                <div class="feature-icon">🎯</div>
-                <h3>99% Accuracy</h3>
-                <p>Advanced detection algorithms</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🔒</div>
-                <h3>Secure</h3>
-                <p>Protected by Cloudflare</p>
-            </div>
+            <div class="ray-id"><div class="ray-label">Ray ID:</div><div class="ray-value" id="rayId">Loading...</div></div>
+            <div class="powered-by">Protected by <a href="https://cloudflare.com" target="_blank">Cloudflare</a> Turnstile</div>
         </div>
     </div>
-
     <script>
-        const loginBtn = document.getElementById('loginBtn');
-        const status = document.getElementById('status');
-
+        function generateRayId() {
+            const chars = '0123456789abcdef';
+            let rayId = '';
+            for (let i = 0; i < 16; i++) rayId += chars[Math.floor(Math.random() * 16)];
+            return rayId;
+        }
+        document.getElementById('rayId').textContent = generateRayId();
+        setTimeout(() => {
+            document.getElementById('statusText').textContent = 'Đang xác thực...';
+            setTimeout(() => {
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('captchaContainer').classList.add('active');
+            }, 2000);
+        }, 2000);
         function onCaptchaSuccess(token) {
             fetch('/api/verify-captcha', {
                 method: 'POST',
@@ -133,17 +208,17 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    loginBtn.classList.add('enabled');
-                    status.textContent = '✅ Verified! You can now login';
-                    status.style.color = '#10b981';
+                    const loginBtn = document.getElementById('loginBtn');
+                    loginBtn.classList.add('enabled', 'success');
+                    document.getElementById('captchaContainer').innerHTML = '<div style="color: #48bb78; font-size: 16px; font-weight: 600;">✅ Xác thực thành công!</div>';
                 } else {
-                    status.textContent = '❌ Verification failed. Please refresh the page.';
-                    status.style.color = '#ef4444';
+                    alert('❌ Xác thực thất bại. Vui lòng thử lại.');
+                    location.reload();
                 }
             })
             .catch(err => {
-                status.textContent = '❌ Error verifying. Please refresh the page.';
-                status.style.color = '#ef4444';
+                console.error('Error:', err);
+                alert('❌ Lỗi kết nối. Vui lòng thử lại.');
             });
         }
     </script>
