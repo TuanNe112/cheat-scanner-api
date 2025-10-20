@@ -4,261 +4,476 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scanner Cheat - Minecraft Protection</title>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a2332 0%, #2d3e50 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e2a3a 0%, #2c3e50 50%, #34495e 100%);
             min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float 15s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            background: rgba(30, 42, 58, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 600px;
+            width: 100%;
+            padding: 60px 50px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .logo-hexagon {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 30px;
+            position: relative;
+            animation: rotate3d 10s linear infinite;
+        }
+
+        @keyframes rotate3d {
+            0% {
+                transform: rotateY(0deg);
+            }
+            100% {
+                transform: rotateY(360deg);
+            }
+        }
+
+        .hexagon {
+            position: relative;
+            width: 140px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 30px 0;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.5);
         }
-        .bg-animation { position: fixed; width: 100%; height: 100%; top: 0; left: 0; z-index: 0; overflow: hidden; }
-        .bg-animation::before {
-            content: '';
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 1px, transparent 1px);
-            background-size: 50px 50px;
-            animation: moveBackground 20s linear infinite;
+
+        .hexagon i {
+            font-size: 50px;
+            color: #fff;
         }
-        @keyframes moveBackground {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
-        }
-        .particle {
-            position: fixed;
-            width: 4px;
-            height: 4px;
-            background: rgba(102, 126, 234, 0.6);
-            border-radius: 50%;
-            animation: float 6s infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
-            25% { opacity: 1; }
-            75% { opacity: 1; }
-            100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
-        }
-        .container {
-            position: relative;
-            z-index: 10;
-            text-align: center;
-            padding: 60px 40px;
-            background: rgba(26, 35, 50, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.1) inset;
-            max-width: 500px;
-            width: 90%;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .logo-container { margin: 0 auto 30px; animation: logoFloat 3s ease-in-out infinite; }
-        .logo {
-            width: 120px;
-            height: 120px;
-            margin: 0 auto;
-            filter: drop-shadow(0 10px 40px rgba(102, 126, 234, 0.5));
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-        @keyframes logoFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        @keyframes glow {
-            from { filter: drop-shadow(0 10px 40px rgba(102, 126, 234, 0.5)); }
-            to { filter: drop-shadow(0 10px 60px rgba(118, 75, 162, 0.8)); }
-        }
+
         h1 {
-            font-size: 36px;
+            font-size: 42px;
             font-weight: 700;
-            margin-bottom: 12px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin-bottom: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #667eea 0%, #a78bfa 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-transform: uppercase;
-            letter-spacing: 2px;
         }
-        .subtitle { color: rgba(255, 255, 255, 0.7); font-size: 16px; margin-bottom: 40px; }
-        .loading-container { margin: 40px 0; }
-        .loading-text { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: white; }
-        .loading-subtext { font-size: 14px; color: rgba(255, 255, 255, 0.6); margin-bottom: 30px; line-height: 1.6; }
-        .progress-container { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden; margin-bottom: 15px; }
+
+        .subtitle {
+            color: #a8b2d1;
+            font-size: 16px;
+            margin-bottom: 50px;
+            font-weight: 400;
+        }
+
+        .loading-section {
+            margin-bottom: 50px;
+        }
+
+        .loading-title {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .loading-description {
+            font-size: 13px;
+            color: #8892b0;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             border-radius: 10px;
-            width: 0%;
-            animation: progress 2s ease-in-out forwards;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+            animation: progress 3s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
         }
-        @keyframes progress { to { width: 100%; } }
-        .status { font-size: 13px; color: rgba(255, 255, 255, 0.5); margin-top: 15px; }
-        .captcha-container { display: none; margin: 40px 0; justify-content: center; }
-        .captcha-container.active { display: flex; }
-        .login-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px 40px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            text-decoration: none;
+
+        @keyframes progress {
+            0% {
+                width: 0%;
+            }
+            50% {
+                width: 100%;
+            }
+            100% {
+                width: 100%;
+            }
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #8892b0;
+            margin-top: 10px;
+        }
+
+        .download-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .captcha-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.3s;
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-            opacity: 0;
-            pointer-events: none;
-            border: none;
+            padding: 18px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .captcha-box:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .captcha-box input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .captcha-box label {
+            font-size: 15px;
+            color: #fff;
             cursor: pointer;
         }
-        .login-btn.enabled { opacity: 1; pointer-events: auto; }
-        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4); }
-        .footer-info { margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
-        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center; }
-        .info-item { font-size: 12px; }
-        .info-icon { font-size: 24px; margin-bottom: 8px; }
-        .info-label { color: rgba(255, 255, 255, 0.5); margin-bottom: 5px; }
-        .info-value { color: white; font-weight: 600; }
-        .ray-id {
-            margin-top: 25px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+
+        .download-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px;
+            font-size: 17px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            opacity: 0.5;
+            pointer-events: none;
         }
-        .ray-label { font-size: 11px; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-        .ray-value { font-size: 13px; color: rgba(255, 255, 255, 0.6); font-family: 'Courier New', monospace; }
-        .powered-by { margin-top: 15px; font-size: 12px; color: rgba(255, 255, 255, 0.4); }
-        .powered-by a { color: #667eea; text-decoration: none; font-weight: 600; }
-        @keyframes successPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.05); } }
-        .success { animation: successPulse 1s ease-in-out; }
+
+        .download-btn.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .download-btn.active:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 50px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 25px 15px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-icon {
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card:nth-child(1) .stat-icon {
+            color: #fbbf24;
+        }
+
+        .stat-card:nth-child(2) .stat-icon {
+            color: #ef4444;
+        }
+
+        .stat-card:nth-child(3) .stat-icon {
+            color: #fbbf24;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #8892b0;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .ray-id {
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .cloudflare-text {
+            font-size: 12px;
+            color: #8892b0;
+        }
+
+        .cloudflare-text a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .cloudflare-text a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 30px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="bg-animation"></div>
-    <script>
-        for (let i = 0; i < 20; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.animationDelay = Math.random() * 6 + 's';
-            particle.style.animationDuration = (4 + Math.random() * 4) + 's';
-            document.body.appendChild(particle);
-        }
-    </script>
+    <div class="particles" id="particles"></div>
+
     <div class="container">
-        <div class="logo-container">
-            <svg class="logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-                    </linearGradient>
-                    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:#FF3B3B;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:#CC0000;stop-opacity:1" />
-                    </linearGradient>
-                </defs>
-                
-                <!-- Outer shield -->
-                <path d="M100,20 L170,50 L170,120 L100,180 L30,120 L30,50 Z" 
-                      fill="url(#grad1)" 
-                      stroke="#00A8CC" 
-                      stroke-width="3"/>
-                
-                <!-- Inner shield -->
-                <path d="M100,40 L150,60 L150,110 L100,150 L50,110 L50,60 Z" 
-                      fill="url(#grad2)" 
-                      stroke="#CC0000" 
-                      stroke-width="2"/>
-                
-                <!-- Center shield -->
-                <path d="M100,55 L135,70 L135,100 L100,125 L65,100 L65,70 Z" 
-                      fill="#00D4FF"/>
-                
-                <!-- SC Text -->
-                <text x="100" y="110" 
-                      text-anchor="middle" 
-                      font-family="Arial Black, sans-serif" 
-                      font-size="35" 
-                      font-weight="900" 
-                      fill="#FF3B3B" 
-                      stroke="#000" 
-                      stroke-width="2">SC</text>
-            </svg>
+        <div class="logo-hexagon">
+            <div class="hexagon">
+                <i class="fas fa-shield-halved"></i>
+            </div>
         </div>
+
         <h1>SCANNER CHEAT</h1>
         <p class="subtitle">Minecraft Protection System</p>
-        <div class="loading-container" id="loadingState">
-            <div class="loading-text">Khoan đã...</div>
-            <div class="loading-subtext">Chúng tôi đang kiểm tra trình duyệt của bạn, hãy hoàn<br>thành captcha ở dưới để có thể tiếp tục truy cập</div>
-            <div class="progress-container"><div class="progress-bar"></div></div>
-            <div class="status" id="statusText">Đang chờ scanner-cheat.railway.app phản hồi...</div>
-        </div>
-        <div class="captcha-container" id="captchaContainer">
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAAB7dVNvq7xPpQApZ" data-callback="onCaptchaSuccess" data-theme="dark"></div>
-        </div>
-        <a href="/login" class="login-btn" id="loginBtn"><span>🔓</span><span>Login with Discord</span></a>
-        <div class="footer-info">
-            <div class="info-grid">
-                <div class="info-item"><div class="info-icon">⚡</div><div class="info-label">Speed</div><div class="info-value">< 50ms</div></div>
-                <div class="info-item"><div class="info-icon">🎯</div><div class="info-label">Accuracy</div><div class="info-value">99.9%</div></div>
-                <div class="info-item"><div class="info-icon">🔒</div><div class="info-label">Security</div><div class="info-value">CloudFlare</div></div>
+
+        <div class="loading-section" id="loadingSection">
+            <div class="loading-title">Khoan đã...</div>
+            <div class="loading-description">
+                Chúng tôi đang kiểm tra trình duyệt của bạn, hãy hoàn<br>
+                thành captcha ở dưới để có thể tiếp tục truy cập
             </div>
-            <div class="ray-id"><div class="ray-label">Ray ID:</div><div class="ray-value" id="rayId">Loading...</div></div>
-            <div class="powered-by">Protected by <a href="https://cloudflare.com" target="_blank">Cloudflare</a> Turnstile</div>
+
+            <div class="progress-container">
+                <div class="progress-bar"></div>
+            </div>
+            <div class="progress-text">Đang xác thực...</div>
+        </div>
+
+        <div class="download-section" id="downloadSection">
+            <div class="captcha-box" onclick="toggleCaptcha()">
+                <input type="checkbox" id="captcha" onchange="toggleDownload()">
+                <label for="captcha">Tôi không phải là robot</label>
+            </div>
+
+            <button class="download-btn" id="downloadBtn" onclick="startDownload()">
+                <i class="fas fa-download"></i>
+                Tải xuống Client
+            </button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="stat-label">Speed</div>
+                <div class="stat-value">&lt; 50ms</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+                <div class="stat-label">Accuracy</div>
+                <div class="stat-value">99.9%</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="stat-label">Security</div>
+                <div class="stat-value">CloudFlare</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="ray-id">RAY ID: b11b93853cdd310a4</div>
+            <div class="cloudflare-text">
+                Protected by <a href="#">Cloudflare Turnstile</a>
+            </div>
         </div>
     </div>
+
     <script>
-        function generateRayId() {
-            const chars = '0123456789abcdef';
-            let rayId = '';
-            for (let i = 0; i < 16; i++) rayId += chars[Math.floor(Math.random() * 16)];
-            return rayId;
+        function createParticles() {
+            const particles = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                particles.appendChild(particle);
+            }
         }
-        document.getElementById('rayId').textContent = generateRayId();
-        
+
+        createParticles();
+
         setTimeout(() => {
-            document.getElementById('statusText').textContent = 'Đang xác thực...';
-            setTimeout(() => {
-                document.getElementById('loadingState').style.display = 'none';
-                document.getElementById('captchaContainer').classList.add('active');
-            }, 2000);
-        }, 2000);
-        
-        function onCaptchaSuccess(token) {
-            console.log('Captcha completed, token:', token.substring(0, 20) + '...');
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('downloadSection').style.display = 'block';
+        }, 3000);
+
+        function toggleCaptcha() {
+            const checkbox = document.getElementById('captcha');
+            checkbox.checked = !checkbox.checked;
+            toggleDownload();
+        }
+
+        function toggleDownload() {
+            const checkbox = document.getElementById('captcha');
+            const downloadBtn = document.getElementById('downloadBtn');
             
-            fetch('/api/verify-captcha', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({token: token})
-            })
-            .then(res => {
-                console.log('Response status:', res.status);
-                return res.json();
-            })
-            .then(data => {
-                console.log('Response data:', data);
-                if (data.success) {
-                    const loginBtn = document.getElementById('loginBtn');
-                    loginBtn.classList.add('enabled', 'success');
-                    document.getElementById('captchaContainer').innerHTML = '<div style="color: #48bb78; font-size: 16px; font-weight: 600;">✅ Xác thực thành công!</div>';
-                } else {
-                    console.error('Verification failed:', data);
-                    document.getElementById('captchaContainer').innerHTML = '<div style="color: #f56565; font-size: 14px;">❌ Xác thực thất bại. <a href="javascript:location.reload()" style="color: #667eea;">Thử lại</a></div>';
-                }
-            })
-            .catch(err => {
-                console.error('Fetch error:', err);
-                document.getElementById('captchaContainer').innerHTML = '<div style="color: #f56565; font-size: 14px;">❌ Lỗi kết nối. <a href="javascript:location.reload()" style="color: #667eea;">Thử lại</a></div>';
-            });
+            if (checkbox.checked) {
+                downloadBtn.classList.add('active');
+            } else {
+                downloadBtn.classList.remove('active');
+            }
+        }
+
+        function startDownload() {
+            const checkbox = document.getElementById('captcha');
+            
+            if (!checkbox.checked) {
+                alert('⚠️ Vui lòng xác minh CAPTCHA trước khi tải xuống!');
+                return;
+            }
+
+            const btn = document.getElementById('downloadBtn');
+            const originalHTML = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải xuống...';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+            
+            setTimeout(() => {
+                // THAY URL NÀY BẰNG LINK DOWNLOAD THỰC CỦA BẠN
+                window.location.href = '/downloads/ScannerCheat-Client.exe';
+                
+                btn.innerHTML = '<i class="fas fa-check"></i> Hoàn tất!';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'all';
+                }, 2500);
+            }, 1500);
         }
     </script>
 </body>
