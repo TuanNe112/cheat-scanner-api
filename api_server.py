@@ -6,15 +6,15 @@ import os
 import requests
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here').strip()
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
-# Config
-DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID')
-DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET')
-DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI')
-OWNER_ID = os.environ.get('OWNER_ID')
-TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET')
+# Config - FIX: Strip all whitespace and newlines
+DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID', '').strip()
+DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET', '').strip()
+DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI', '').strip()
+OWNER_ID = os.environ.get('OWNER_ID', '').strip()
+TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET', '').strip()
 
 # Data storage
 DATA_DIR = 'data'
@@ -22,6 +22,17 @@ USERS_FILE = f'{DATA_DIR}/users.json'
 BANNED_FILE = f'{DATA_DIR}/banned.json'
 
 os.makedirs(DATA_DIR, exist_ok=True)
+
+# Debug print on startup
+print("=" * 60)
+print("🚀 SCANNER CHEAT API - STARTING")
+print("=" * 60)
+print(f"DISCORD_CLIENT_ID: {DISCORD_CLIENT_ID[:10] if DISCORD_CLIENT_ID else '❌ NOT SET'}...")
+print(f"DISCORD_CLIENT_SECRET: {'✅ SET' if DISCORD_CLIENT_SECRET else '❌ NOT SET'}")
+print(f"DISCORD_REDIRECT_URI: {DISCORD_REDIRECT_URI if DISCORD_REDIRECT_URI else '❌ NOT SET'}")
+print(f"OWNER_ID: {OWNER_ID if OWNER_ID else '❌ NOT SET'}")
+print(f"TURNSTILE_SECRET: {TURNSTILE_SECRET[:10] if TURNSTILE_SECRET else '❌ NOT SET'}...")
+print("=" * 60)
 
 # Helper functions
 def load_users():
@@ -63,10 +74,10 @@ def owner_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# ========== CAPTCHA VERIFY ROUTE - FIX ==========
+# ========== CAPTCHA VERIFY ROUTE ==========
 @app.route('/api/verify-captcha', methods=['POST'])
 def verify_captcha():
-    """Verify Cloudflare Turnstile CAPTCHA - FIXED VERSION"""
+    """Verify Cloudflare Turnstile CAPTCHA"""
     try:
         data = request.get_json()
         if not data:
@@ -124,7 +135,18 @@ def login_page():
 @app.route('/auth/discord')
 def auth_discord():
     remember = request.args.get('remember', 'false')
-    auth_url = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20email&state={remember}"
+    
+    # Build auth URL - ensure no newlines
+    auth_url = (
+        f"https://discord.com/api/oauth2/authorize"
+        f"?client_id={DISCORD_CLIENT_ID}"
+        f"&redirect_uri={DISCORD_REDIRECT_URI}"
+        f"&response_type=code"
+        f"&scope=identify%20email"
+        f"&state={remember}"
+    )
+    
+    print(f"🔗 Redirecting to: {auth_url[:100]}...")
     return redirect(auth_url)
 
 @app.route('/callback')
@@ -182,11 +204,14 @@ def callback():
             session.permanent = True
         session['user'] = user_data
         
+        print(f"✅ User logged in: {user_data.get('username')} ({user_id})")
+        
         if user_data.get('id') == OWNER_ID:
             return redirect(url_for('panel'))
         return redirect(url_for('dashboard'))
         
     except Exception as e:
+        print(f"❌ Error in callback: {str(e)}")
         return f"Error: {str(e)}", 500
 
 @app.route('/panel')
@@ -320,7 +345,11 @@ def get_panel_stats():
 # ========== HEALTH CHECK ==========
 @app.route('/health')
 def health():
-    return jsonify({"status": "ok", "timestamp": datetime.now().isoformat()})
+    return jsonify({
+        "status": "ok", 
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0"
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
