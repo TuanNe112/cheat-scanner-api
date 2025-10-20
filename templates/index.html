@@ -60,8 +60,8 @@
         }
         .logo-container { margin: 0 auto 30px; animation: logoFloat 3s ease-in-out infinite; }
         .logo {
-            width: 140px;
-            height: 140px;
+            width: 120px;
+            height: 120px;
             margin: 0 auto;
             filter: drop-shadow(0 10px 40px rgba(102, 126, 234, 0.5));
             animation: glow 2s ease-in-out infinite alternate;
@@ -154,12 +154,43 @@
     </script>
     <div class="container">
         <div class="logo-container">
-            <svg class="logo" viewBox="0 0 500 500">
-                <polygon points="250,50 420,150 420,350 250,450 80,350 80,150" fill="#00D4FF" stroke="#00A8CC" stroke-width="4"/>
-                <polygon points="250,90 390,170 390,330 250,410 110,330 110,170" fill="#FF3B3B" stroke="#CC0000" stroke-width="3"/>
-                <polygon points="250,120 370,185 370,315 250,380 130,315 130,185" fill="#00D4FF"/>
-                <text x="250" y="220" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="45" font-weight="900" fill="#FF3B3B" stroke="#000" stroke-width="2">SCANNER</text>
-                <text x="250" y="290" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="50" font-weight="900" fill="#FF3B3B" stroke="#000" stroke-width="2">CHEAT</text>
+            <svg class="logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                    </linearGradient>
+                    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FF3B3B;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#CC0000;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                
+                <!-- Outer shield -->
+                <path d="M100,20 L170,50 L170,120 L100,180 L30,120 L30,50 Z" 
+                      fill="url(#grad1)" 
+                      stroke="#00A8CC" 
+                      stroke-width="3"/>
+                
+                <!-- Inner shield -->
+                <path d="M100,40 L150,60 L150,110 L100,150 L50,110 L50,60 Z" 
+                      fill="url(#grad2)" 
+                      stroke="#CC0000" 
+                      stroke-width="2"/>
+                
+                <!-- Center shield -->
+                <path d="M100,55 L135,70 L135,100 L100,125 L65,100 L65,70 Z" 
+                      fill="#00D4FF"/>
+                
+                <!-- SC Text -->
+                <text x="100" y="110" 
+                      text-anchor="middle" 
+                      font-family="Arial Black, sans-serif" 
+                      font-size="35" 
+                      font-weight="900" 
+                      fill="#FF3B3B" 
+                      stroke="#000" 
+                      stroke-width="2">SC</text>
             </svg>
         </div>
         <h1>SCANNER CHEAT</h1>
@@ -192,6 +223,7 @@
             return rayId;
         }
         document.getElementById('rayId').textContent = generateRayId();
+        
         setTimeout(() => {
             document.getElementById('statusText').textContent = 'Đang xác thực...';
             setTimeout(() => {
@@ -199,26 +231,33 @@
                 document.getElementById('captchaContainer').classList.add('active');
             }, 2000);
         }, 2000);
+        
         function onCaptchaSuccess(token) {
+            console.log('Captcha completed, token:', token.substring(0, 20) + '...');
+            
             fetch('/api/verify-captcha', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({token: token})
             })
-            .then(res => res.json())
+            .then(res => {
+                console.log('Response status:', res.status);
+                return res.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
                 if (data.success) {
                     const loginBtn = document.getElementById('loginBtn');
                     loginBtn.classList.add('enabled', 'success');
                     document.getElementById('captchaContainer').innerHTML = '<div style="color: #48bb78; font-size: 16px; font-weight: 600;">✅ Xác thực thành công!</div>';
                 } else {
-                    alert('❌ Xác thực thất bại. Vui lòng thử lại.');
-                    location.reload();
+                    console.error('Verification failed:', data);
+                    document.getElementById('captchaContainer').innerHTML = '<div style="color: #f56565; font-size: 14px;">❌ Xác thực thất bại. <a href="javascript:location.reload()" style="color: #667eea;">Thử lại</a></div>';
                 }
             })
             .catch(err => {
-                console.error('Error:', err);
-                alert('❌ Lỗi kết nối. Vui lòng thử lại.');
+                console.error('Fetch error:', err);
+                document.getElementById('captchaContainer').innerHTML = '<div style="color: #f56565; font-size: 14px;">❌ Lỗi kết nối. <a href="javascript:location.reload()" style="color: #667eea;">Thử lại</a></div>';
             });
         }
     </script>

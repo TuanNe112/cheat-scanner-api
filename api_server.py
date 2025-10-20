@@ -3,15 +3,13 @@ from functools import wraps
 from datetime import datetime, timedelta
 import json
 import os
-import requests as external_requests
+import requests
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'change-this-secret-key-here')
-
-# Session config - Remember Me support
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
-# ========== CONFIG ==========
+# Config
 DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID')
 DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET')
 DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI')
@@ -25,7 +23,7 @@ BANNED_FILE = f'{DATA_DIR}/banned.json'
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# ========== HELPER FUNCTIONS ==========
+# Helper functions
 def load_users():
     try:
         with open(USERS_FILE, 'r') as f:
@@ -48,7 +46,7 @@ def save_banned(banned):
     with open(BANNED_FILE, 'w') as f:
         json.dump(banned, f, indent=2)
 
-# ========== DECORATORS ==========
+# Decorators
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -65,85 +63,54 @@ def owner_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# ========== CLIENT API ROUTES (cho Minecraft client) ==========
-@app.route('/turnstile/verify', methods=['POST'])
-def verify_turnstile():
-    """Verify Turnstile CAPTCHA from client"""
-    data = request.json
-    token = data.get('token')
-    
-    if not token:
-        return jsonify({"success": False}), 400
-    
-    verify_response = external_requests.post(
-        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-        json={
-            'secret': TURNSTILE_SECRET,
-            'response': token
-        }
-    )
-    
-    result = verify_response.json()
-    return jsonify({"success": result.get('success', False)})
-
-@app.route('/auth/login', methods=['POST'])
-def auth_login():
-    """Login from Minecraft client"""
-    data = request.json
-    user_id = data.get('id')
-    
-    if not user_id:
-        return jsonify({"error": "Invalid data"}), 400
-    
-    # Check ban
-    banned = load_banned()
-    if user_id in banned:
+# ========== CAPTCHA VERIFY ROUTE - FIX ==========
+@app.route('/api/verify-captcha', methods=['POST'])
+def verify_captcha():
+    """Verify Cloudflare Turnstile CAPTCHA - FIXED VERSION"""
+    try:
+        data = request.get_json()
+        if not data:
+            print("❌ No JSON data received")
+            return jsonify({"success": False, "error": "No data"}), 400
+        
+        token = data.get('token')
+        if not token:
+            print("❌ No token in request")
+            return jsonify({"success": False, "error": "No token"}), 400
+        
+        print(f"✅ Received token: {token[:20]}...")
+        print(f"🔑 Using secret: {TURNSTILE_SECRET[:10] if TURNSTILE_SECRET else 'NOT SET'}...")
+        
+        # Verify with Cloudflare
+        verify_response = requests.post(
+            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+            json={
+                'secret': TURNSTILE_SECRET,
+                'response': token
+            },
+            timeout=10
+        )
+        
+        result = verify_response.json()
+        print(f"📡 Cloudflare response: {result}")
+        
+        if result.get('success'):
+            print("✅ Verification SUCCESS")
+            return jsonify({"success": True})
+        else:
+            print(f"❌ Verification FAILED: {result.get('error-codes', [])}")
+            return jsonify({
+                "success": False, 
+                "error": "Verification failed",
+                "error_codes": result.get('error-codes', [])
+            }), 400
+            
+    except Exception as e:
+        print(f"❌ Exception in verify_captcha: {str(e)}")
         return jsonify({
-            "error": "banned",
-            "reason": banned[user_id].get('reason')
-        }), 403
-    
-    users = load_users()
-    
-    if user_id not in users:
-        users[user_id] = {
-            "username": data.get('username'),
-            "email": data.get('email'),
-            "verified": data.get('verified', False),
-            "hwid": data.get('hwid'),
-            "first_login": datetime.now().isoformat(),
-            "total_logins": 1
-        }
-    else:
-        users[user_id]['total_logins'] = users[user_id].get('total_logins', 0) + 1
-        users[user_id]['last_login'] = datetime.now().isoformat()
-        if data.get('hwid'):
-            users[user_id]['hwid'] = data.get('hwid')
-    
-    save_users(users)
-    return jsonify({
-        "success": True,
-        "user": users[user_id]
-    })
-
-@app.route('/auth/check_ban/<user_id>')
-def check_ban(user_id):
-    """Check if user is banned (for client)"""
-    banned = load_banned()
-    if user_id in banned:
-        return jsonify({"banned": True, "reason": banned[user_id].get('reason')})
-    return jsonify({"banned": False})
-
-@app.route('/api/stats')
-def api_stats():
-    """Get public stats (for client)"""
-    users = load_users()
-    banned = load_banned()
-    return jsonify({
-        "total_users": len(users),
-        "banned_users": len(banned),
-        "active_users": len(users) - len(banned)
-    })
+            "success": False, 
+            "error": str(e)
+        }), 500
 
 # ========== WEB ROUTES ==========
 @app.route('/')
@@ -163,10 +130,10 @@ def auth_discord():
 @app.route('/callback')
 def callback():
     code = request.args.get('code')
-    remember = request.args.get('state', 'false')  # Get remember me from state
+    remember = request.args.get('state', 'false')
     
     if not code:
-        return "Login failed", 400
+        return "Login failed: No code", 400
     
     data = {
         'client_id': DISCORD_CLIENT_ID,
@@ -177,19 +144,22 @@ def callback():
     }
     
     try:
-        token_response = external_requests.post('https://discord.com/api/oauth2/token', data=data)
+        token_response = requests.post('https://discord.com/api/oauth2/token', data=data)
         token_data = token_response.json()
         
-        user_response = external_requests.get('https://discord.com/api/users/@me', 
+        if 'error' in token_data:
+            return f"Discord OAuth error: {token_data.get('error_description', 'Unknown error')}", 400
+        
+        user_response = requests.get('https://discord.com/api/users/@me', 
                                headers={'Authorization': f"Bearer {token_data['access_token']}"})
         user_data = user_response.json()
         
-        # Check if banned
+        # Check ban
         banned = load_banned()
         if user_data.get('id') in banned:
             return f"You are banned. Reason: {banned[user_data['id']].get('reason')}", 403
         
-        # Save to users database
+        # Save user
         users = load_users()
         user_id = user_data.get('id')
         
@@ -207,12 +177,9 @@ def callback():
         
         save_users(users)
         
-        # Set session with remember me
+        # Set session
         if remember == 'true':
-            session.permanent = True  # 30 days
-        else:
-            session.permanent = False
-        
+            session.permanent = True
         session['user'] = user_data
         
         if user_data.get('id') == OWNER_ID:
@@ -241,26 +208,61 @@ def logout():
     session.clear()
     return redirect(url_for('home'))
 
-# ========== PANEL API ROUTES ==========
-@app.route('/api/verify-captcha', methods=['POST'])
-def verify_captcha():
-    data = request.json
-    token = data.get('token')
-    
-    if not token:
-        return jsonify({"success": False}), 400
-    
-    verify_response = external_requests.post(
-        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-        json={
-            'secret': TURNSTILE_SECRET,
-            'response': token
-        }
-    )
-    
-    result = verify_response.json()
-    return jsonify({"success": result.get('success', False)})
+# ========== CLIENT API ROUTES ==========
+@app.route('/turnstile/verify', methods=['POST'])
+def verify_turnstile_client():
+    """Verify from Minecraft client"""
+    return verify_captcha()
 
+@app.route('/auth/login', methods=['POST'])
+def auth_login():
+    data = request.json
+    user_id = data.get('id')
+    
+    if not user_id:
+        return jsonify({"error": "Invalid data"}), 400
+    
+    banned = load_banned()
+    if user_id in banned:
+        return jsonify({"error": "banned", "reason": banned[user_id].get('reason')}), 403
+    
+    users = load_users()
+    if user_id not in users:
+        users[user_id] = {
+            "username": data.get('username'),
+            "email": data.get('email'),
+            "verified": data.get('verified', False),
+            "hwid": data.get('hwid'),
+            "first_login": datetime.now().isoformat(),
+            "total_logins": 1
+        }
+    else:
+        users[user_id]['total_logins'] = users[user_id].get('total_logins', 0) + 1
+        users[user_id]['last_login'] = datetime.now().isoformat()
+        if data.get('hwid'):
+            users[user_id]['hwid'] = data.get('hwid')
+    
+    save_users(users)
+    return jsonify({"success": True, "user": users[user_id]})
+
+@app.route('/auth/check_ban/<user_id>')
+def check_ban(user_id):
+    banned = load_banned()
+    if user_id in banned:
+        return jsonify({"banned": True, "reason": banned[user_id].get('reason')})
+    return jsonify({"banned": False})
+
+@app.route('/api/stats')
+def api_stats():
+    users = load_users()
+    banned = load_banned()
+    return jsonify({
+        "total_users": len(users),
+        "banned_users": len(banned),
+        "active_users": len(users) - len(banned)
+    })
+
+# ========== PANEL API ROUTES ==========
 @app.route('/api/panel/users')
 @owner_required
 def get_panel_users():
@@ -315,6 +317,11 @@ def get_panel_stats():
         'total_logins': sum(u.get('total_logins', 0) for u in users.values())
     })
 
-# ========== RUN ==========
+# ========== HEALTH CHECK ==========
+@app.route('/health')
+def health():
+    return jsonify({"status": "ok", "timestamp": datetime.now().isoformat()})
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
